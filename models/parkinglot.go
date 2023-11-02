@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	Gray           = color.RGBA{R: 30, G: 30, B: 30, A: 255}
-	Black          = color.RGBA{R: 0, G: 0, B: 0, A: 255}
+	White          = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	Black          = color.RGBA{R: 30, G: 30, B: 30, A: 255}
 	mutexExitEnter sync.Mutex
 )
 
@@ -22,11 +22,11 @@ const (
 )
 
 type Parking struct {
-	waitCars            []*Car
-	parking             [MaxParking]*Car
-	entrace             *Car
-	exit                *Car
-	out                 *Car
+	waitCars            []*Vehicle
+	parking             [MaxParking]*Vehicle
+	entrace             *Vehicle
+	exit                *Vehicle
+	out                 *Vehicle
 	semQuit             chan bool
 	semRenderNewCarWait chan bool
 }
@@ -41,23 +41,23 @@ func NewParking(sENCW chan bool, sQ chan bool) *Parking {
 
 func (p *Parking) MakeParking() {
 	for i := range p.parking {
-		car := NewSpaceCar()
+		car := NewSpaceVehicle()
 		p.parking[i] = car
 	}
 }
 
-func (p *Parking) MakeOutStation() *Car {
-	p.out = NewSpaceCar()
+func (p *Parking) MakeOutStation() *Vehicle {
+	p.out = NewSpaceVehicle()
 	return p.out
 }
 
-func (p *Parking) MakeExitStation() *Car {
-	p.exit = NewSpaceCar()
+func (p *Parking) MakeExitStation() *Vehicle {
+	p.exit = NewSpaceVehicle()
 	return p.exit
 }
 
-func (p *Parking) MakeEntraceStation() *Car {
-	p.entrace = NewSpaceCar()
+func (p *Parking) MakeEntraceStation() *Vehicle {
+	p.entrace = NewSpaceVehicle()
 	return p.entrace
 }
 
@@ -69,10 +69,10 @@ func (p *Parking) GenerateCars() {
 			fmt.Printf("GenerateCars Close")
 			return
 		default:
-			interarrivalTime := -math.Log(1-rand.Float64()) / lambda //Poisson.
+			interarrivalTime := -math.Log(1-rand.Float64()) / lambda
 			time.Sleep(time.Duration(interarrivalTime * float64(time.Second)))
 			if len(p.waitCars) < MaxWait {
-				car := NewCar(i, p.semQuit)
+				car := NewVehicle(i, p.semQuit)
 				i++
 				p.waitCars = append(p.waitCars, car)
 				p.semRenderNewCarWait <- true
@@ -107,9 +107,8 @@ func (p *Parking) MoveToEntrace() {
 
 func (p *Parking) MoveToPark(index int) {
 	p.parking[index].ReplaceData(p.entrace)
-	p.parking[index].text.Show()
 
-	p.entrace.ReplaceData(NewSpaceCar())
+	p.entrace.ReplaceData(NewSpaceVehicle())
 	go p.parking[index].StartCount(index)
 	time.Sleep(1 * time.Second)
 
@@ -122,16 +121,16 @@ func (p *Parking) OutCarToExit() {
 			fmt.Printf("CarExit Close")
 			return
 		default:
-			if !WaitExitCarsIsEmpty() {
+			if !WaitExitVehiclesIsEmpty() {
 				mutexExitEnter.Lock()
-				car := PopExitWaitCars()
+				car := PopExitWaitVehicles()
 
 				p.MoveToExit(car.ID)
 				p.MoveToOut()
 				mutexExitEnter.Unlock()
 
 				time.Sleep(1 * time.Second)
-				p.out.ReplaceData(NewSpaceCar())
+				p.out.ReplaceData(NewSpaceVehicle())
 			}
 		}
 	}
@@ -139,14 +138,13 @@ func (p *Parking) OutCarToExit() {
 
 func (p *Parking) MoveToExit(index int) {
 	p.exit.ReplaceData(p.parking[index])
-	p.parking[index].text.Hide()
-	p.parking[index].ReplaceData(NewSpaceCar())
+	p.parking[index].ReplaceData(NewSpaceVehicle())
 	time.Sleep(1 * time.Second)
 }
 
 func (p *Parking) MoveToOut() {
 	p.out.ReplaceData(p.exit)
-	p.exit.ReplaceData(NewSpaceCar())
+	p.exit.ReplaceData(NewSpaceVehicle())
 	time.Sleep(1 * time.Second)
 }
 
@@ -159,7 +157,7 @@ func (p *Parking) SearchSpace() int {
 	return -1
 }
 
-func (p *Parking) PopWaitCars() *Car {
+func (p *Parking) PopWaitCars() *Vehicle {
 	car := p.waitCars[0]
 	if !p.WaitCarsIsEmpty() {
 		p.waitCars = p.waitCars[1:]
@@ -171,19 +169,19 @@ func (p *Parking) WaitCarsIsEmpty() bool {
 	return len(p.waitCars) == 0
 }
 
-func (p *Parking) GetWaitCars() []*Car {
+func (p *Parking) GetWaitCars() []*Vehicle {
 	return p.waitCars
 }
 
-func (p *Parking) GetEntraceCar() *Car {
+func (p *Parking) GetEntraceCar() *Vehicle {
 	return p.entrace
 }
 
-func (p *Parking) GetExitCar() *Car {
+func (p *Parking) GetExitCar() *Vehicle {
 	return p.exit
 }
 
-func (p *Parking) GetParking() [MaxParking]*Car {
+func (p *Parking) GetParking() [MaxParking]*Vehicle {
 	return p.parking
 }
 

@@ -8,8 +8,8 @@ import (
 
 func main() {
 	app := app.New()
-	window := app.NewWindow("Parking")
+	window := app.NewWindow("Parkinglot Simulator")
 	window.CenterOnScreen()
-	view.NewParkingView(window)
+	view.NewView(window)
 	window.ShowAndRun()
 }

@@ -15,7 +15,7 @@ import (
 var semRenderNewCarWait chan bool
 var semQuit chan bool
 
-type ParkingView struct {
+type View struct {
 	window               fyne.Window
 	waitRectangleStation [models.MaxWait]*canvas.Rectangle
 }
@@ -24,22 +24,22 @@ var Gray = color.RGBA{R: 30, G: 30, B: 30, A: 255}
 
 var parking *models.Parking
 
-func NewParkingView(window fyne.Window) *ParkingView {
-	parkingView := &ParkingView{window: window}
+func NewView(window fyne.Window) *View {
+	View := &View{window: window}
 
 	semQuit = make(chan bool)
 	semRenderNewCarWait = make(chan bool)
 
 	parking = models.NewParking(semRenderNewCarWait, semQuit)
-	parkingView.MakeScene()
-	parkingView.StartSimulation()
+	View.MakeScene()
+	View.StartSimulation()
 
-	return parkingView
+	return View
 }
 
-func (p *ParkingView) MakeScene() {
+func (p *View) MakeScene() {
 
-	containerParkingView := container.New(layout.NewVBoxLayout())
+	containerView := container.New(layout.NewVBoxLayout())
 	containerParkingOut := container.New(layout.NewHBoxLayout())
 
 	containerParkingOut.Add(p.MakeWaitStation())
@@ -47,21 +47,21 @@ func (p *ParkingView) MakeScene() {
 	containerParkingOut.Add(p.MakeExitStation())
 	containerParkingOut.Add(layout.NewSpacer())
 
-	containerParkingView.Add(containerParkingOut)
-	containerParkingView.Add(layout.NewSpacer())
-	containerParkingView.Add(p.MakeParkingLotEntrance())
-	containerParkingView.Add(layout.NewSpacer())
-	containerParkingView.Add(p.MakeEnterAndExitStation())
-	containerParkingView.Add(layout.NewSpacer())
-	containerParkingView.Add(p.MakeParking())
-	containerParkingView.Add(layout.NewSpacer())
+	containerView.Add(containerParkingOut)
+	containerView.Add(layout.NewSpacer())
+	containerView.Add(p.MakeParkingLotEntrance())
+	containerView.Add(layout.NewSpacer())
+	containerView.Add(p.MakeEnterAndExitStation())
+	containerView.Add(layout.NewSpacer())
+	containerView.Add(p.MakeParking())
+	containerView.Add(layout.NewSpacer())
 
-	p.window.SetContent(containerParkingView)
+	p.window.SetContent(containerView)
 	p.window.Resize(fyne.NewSize(500, 500))
 	p.window.CenterOnScreen()
 }
 
-func (p *ParkingView) MakeParking() *fyne.Container {
+func (p *View) MakeParking() *fyne.Container {
 	parkingContainer := container.New(layout.NewGridLayout(5))
 	parking.MakeParking()
 
@@ -70,15 +70,15 @@ func (p *ParkingView) MakeParking() *fyne.Container {
 		if i == 10 {
 			addSpace(parkingContainer)
 		}
-		parkingContainer.Add(container.NewCenter(parkingArray[i].GetRectangle(), parkingArray[i].GetText()))
+		parkingContainer.Add(container.NewCenter(parkingArray[i].GetRectangle()))
 	}
 	return container.NewCenter(parkingContainer)
 }
 
-func (p *ParkingView) MakeWaitStation() *fyne.Container {
+func (p *View) MakeWaitStation() *fyne.Container {
 	parkingContainer := container.New(layout.NewGridLayout(5))
 	for i := len(p.waitRectangleStation) - 1; i >= 0; i-- {
-		car := models.NewSpaceCar().GetRectangle()
+		car := models.NewSpaceVehicle().GetRectangle()
 		p.waitRectangleStation[i] = car
 		p.waitRectangleStation[i].Hide()
 		parkingContainer.Add(p.waitRectangleStation[i])
@@ -86,12 +86,12 @@ func (p *ParkingView) MakeWaitStation() *fyne.Container {
 	return parkingContainer
 }
 
-func (p *ParkingView) MakeExitStation() *fyne.Container {
+func (p *View) MakeExitStation() *fyne.Container {
 	out := parking.MakeOutStation()
 	return container.NewCenter(out.GetRectangle())
 }
 
-func (p *ParkingView) MakeEnterAndExitStation() *fyne.Container {
+func (p *View) MakeEnterAndExitStation() *fyne.Container {
 	parkingContainer := container.New(layout.NewGridLayout(5))
 	parkingContainer.Add(layout.NewSpacer())
 	entrace := parking.MakeEntraceStation()
@@ -103,15 +103,13 @@ func (p *ParkingView) MakeEnterAndExitStation() *fyne.Container {
 	return container.NewCenter(parkingContainer)
 }
 
-func (p *ParkingView) MakeParkingLotEntrance() *fyne.Container {
+func (p *View) MakeParkingLotEntrance() *fyne.Container {
 	EntraceContainer := container.New(layout.NewGridLayout(3))
-	EntraceContainer.Add(makeBorder())
 	EntraceContainer.Add(layout.NewSpacer())
-	EntraceContainer.Add(makeBorder())
 	return EntraceContainer
 }
 
-func (p *ParkingView) RenderNewCarWaitStation() {
+func (p *View) RenderNewCarWaitStation() {
 	for {
 		select {
 		case <-semQuit:
@@ -130,7 +128,7 @@ func (p *ParkingView) RenderNewCarWaitStation() {
 	}
 }
 
-func (p *ParkingView) RenderUpdate() {
+func (p *View) RenderUpdate() {
 	for {
 		select {
 		case <-semQuit:
@@ -143,7 +141,7 @@ func (p *ParkingView) RenderUpdate() {
 	}
 }
 
-func (p *ParkingView) StartSimulation() {
+func (p *View) StartSimulation() {
 	go parking.GenerateCars()
 	go parking.OutCarToExit()
 	go parking.CheckParking()
@@ -152,9 +150,9 @@ func (p *ParkingView) StartSimulation() {
 
 }
 
-func (p *ParkingView) RestartSimulation() {
+func (p *View) RestartSimulation() {
 	close(semQuit)
-	NewParkingView(p.window)
+	NewView(p.window)
 }
 
 func addSpace(parkingContainer *fyne.Container) {
@@ -163,10 +161,3 @@ func addSpace(parkingContainer *fyne.Container) {
 	}
 }
 
-func makeBorder() *canvas.Rectangle {
-	square := canvas.NewRectangle(color.RGBA{R: 255, G: 255, B: 255, A: 0})
-	square.SetMinSize(fyne.NewSquareSize(float32(30)))
-	square.StrokeColor = color.RGBA{R: 255, G: 255, B: 255, A: 255}
-	square.StrokeWidth = float32(1)
-	return square
-}
